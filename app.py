@@ -63,19 +63,19 @@ selected_plot_type = st.sidebar.selectbox("Select Plot Type", plot_types)
 selected_color = st.sidebar.color_picker("Select Plot Color", "#1f77b4")
 selected_line_width = st.sidebar.slider("Line Thickness", 1, 5, 2)
 selected_marker_style = st.sidebar.selectbox("Marker Style", ["circle", "square", "diamond", "cross"])
-selected_width = st.sidebar.slider("Plot Width (%)", 20, 100, 50)  # Allow users to set width
-selected_height = st.sidebar.slider("Plot Height (px)", 200, 800, 400)  # Allow users to set height
+plot_width = st.sidebar.slider("Plot Width", 300, 900, 600)
+plot_height = st.sidebar.slider("Plot Height", 300, 900, 600)
 
 # Button to add plot
 if st.sidebar.button("➕ Add Plot"):
     st.session_state.active_plots.append({
-        "measurement": selected_measurement,
-        "plot_type": selected_plot_type,
+        "measurement": selected_measurement, 
+        "plot_type": selected_plot_type, 
         "color": selected_color,
         "line_width": selected_line_width,
         "marker_style": selected_marker_style,
-        "width": selected_width,
-        "height": selected_height
+        "width": plot_width,
+        "height": plot_height
     })
 
 # Button to clear all plots
