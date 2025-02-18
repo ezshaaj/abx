@@ -3,3 +3,5 @@ plotly
 numpy 
 streamlit-sortables
 google_fonts
+pandas 
+pillow
