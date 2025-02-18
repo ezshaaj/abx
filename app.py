@@ -112,4 +112,38 @@ if st.session_state.active_plots:
                     line=dict(color=color, width=line_width)
                 ))
                 fig.update_layout(
-                    title=f"{meas} - Line Chart", xaxis_title="Time", yaxi
+                    title=f"{meas} - Line Chart", xaxis_title="Time", yaxis_title="Value",
+                    width=int(width * 10), height=height,  # Convert width from percentage to pixels
+                    paper_bgcolor=bg_color, font_color=text_color
+                )
+                st.plotly_chart(fig)
+
+            elif plot_type == "Gauge":
+                fig = go.Figure(go.Indicator(
+                    mode="gauge+number",
+                    value=data[meas],
+                    title={"text": meas},
+                    gauge={"axis": {"range": [0, 100] if meas != "BLER" else [0, 1]}, "bar": {"color": color}}
+                ))
+                fig.update_layout(
+                    width=int(width * 10), height=height, 
+                    paper_bgcolor=bg_color, font_color=text_color
+                )
+                st.plotly_chart(fig)
+
+            elif plot_type == "Scatter (for Constellation)" and meas == "Constellation":
+                fig = go.Figure(go.Scatter(
+                    x=data["Constellation"][:, 0],
+                    y=data["Constellation"][:, 1],
+                    mode='markers',
+                    marker=dict(color=color, symbol=marker_dict[marker_style])
+                ))
+                fig.update_layout(
+                    title="Constellation Plot", xaxis_title="I", yaxis_title="Q",
+                    width=int(width * 10), height=height, 
+                    paper_bgcolor=bg_color, font_color=text_color
+                )
+                st.plotly_chart(fig)
+
+# Auto-refresh info
+st.sidebar.write("🔄 The data updates automatically every time you refresh.")
