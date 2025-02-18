@@ -99,8 +99,11 @@ st.subheader("📈 Live 5G Measurements")
 data = generate_data()
 marker_dict = {"circle": "circle", "square": "square", "diamond": "diamond", "cross": "x"}
 
+# Track plots to delete
+plots_to_delete = []
+
 if st.session_state.active_plots:
-    for plot in st.session_state.active_plots:
+    for i, plot in enumerate(st.session_state.active_plots):
         meas, plot_type, color, line_width, marker_style, width, height, title = (
             plot["measurement"], plot["plot_type"], plot["color"], plot["line_width"], 
             plot["marker_style"], plot["width"], plot["height"], plot["title"]
@@ -140,7 +143,16 @@ if st.session_state.active_plots:
                               width=width, height=height)
 
         # Display plot
-        st.plotly_chart(fig)
+        col1, col2 = st.columns([8, 1])
+        with col1:
+            st.plotly_chart(fig)
+        with col2:
+            if st.button(f"🗑 Remove {title}", key=f"remove_{i}"):
+                plots_to_delete.append(i)
+
+# Remove selected plots
+for index in sorted(plots_to_delete, reverse=True):
+    del st.session_state.active_plots[index]
 
 # Auto-refresh info
 st.sidebar.write("🔄 The data updates automatically every time you refresh.")
