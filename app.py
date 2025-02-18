@@ -3,6 +3,7 @@ import plotly.graph_objects as go
 import numpy as np
 import pandas as pd
 from streamlit_sortables import sort_items
+from streamlit_dynamic_widgets import dynamic_plot_container
 
 # Simulated 5G measurement data (replace with real data source)
 def generate_data():
@@ -50,21 +51,19 @@ if st.sidebar.button("\U0001F4E2 Add Plot"):
 if st.sidebar.button("\U0001F5D1 Clear All Plots"):
     st.session_state.active_plots = []
 
-# Generate and display plots in a grid layout
+# Generate and display plots with resizable and draggable containers
 st.subheader("\U0001F4C8 Live 5G Measurements")
 data = generate_data()
 marker_dict = {"circle": "circle", "square": "square", "diamond": "diamond", "cross": "x"}
 
 if st.session_state.active_plots:
-    cols = st.columns(len(st.session_state.active_plots))  # Grid layout with dynamic columns
-
-    for idx, plot in enumerate(st.session_state.active_plots):
-        meas, plot_type, color, line_width, marker_style, title = (
-            plot["measurement"], plot["plot_type"], plot["color"], 
-            plot["line_width"], plot["marker_style"], plot["title"]
-        )
-
-        with cols[idx]:  # Place each plot in a column
+    with dynamic_plot_container():  # Enables resizable and draggable plots
+        for plot in st.session_state.active_plots:
+            meas, plot_type, color, line_width, marker_style, title = (
+                plot["measurement"], plot["plot_type"], plot["color"], 
+                plot["line_width"], plot["marker_style"], plot["title"]
+            )
+            
             if plot_type == "Line Chart":
                 y_values = np.random.uniform(0, 100, 10)  # Simulating 10 time samples
                 fig = go.Figure(go.Scatter(y=y_values, x=list(range(10)), mode='lines', name=meas, line=dict(color=color, width=line_width)))
