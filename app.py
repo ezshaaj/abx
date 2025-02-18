@@ -93,7 +93,7 @@ if st.session_state.active_plots:
     ]
     st.session_state.active_plots = reordered_plots
 
-# Generate and display plots
+# Generate and display plots in resizable & draggable layout
 st.subheader("📈 Live 5G Measurements")
 data = generate_data()
 marker_dict = {"circle": "circle", "square": "square", "diamond": "diamond", "cross": "x"}
