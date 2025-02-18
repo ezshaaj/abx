@@ -118,4 +118,30 @@ if st.session_state.active_plots:
         if plot_type == "Line Chart":
             y_values = np.random.uniform(0, 100, 10)  # Simulating 10 time samples
             fig = go.Figure(go.Scatter(y=y_values, x=list(range(10)), mode='lines', name=meas, line=dict(color=color, width=line_width)))
-            fig.update_layout(title=f"{meas} - Line Chart", xaxis_title="Tim
+            fig.update_layout(title=f"{meas} - Line Chart", xaxis_title="Time", yaxis_title="Value", paper_bgcolor=bg_color, font_color=text_color)
+            st.plotly_chart(fig, use_container_width=True)
+
+        elif plot_type == "Gauge":
+            fig = go.Figure(go.Indicator(
+                mode="gauge+number",
+                value=data[meas],
+                title={"text": meas},
+                gauge={"axis": {"range": [0, 100] if meas != "BLER" else [0, 1]}, "bar": {"color": color}}
+            ))
+            fig.update_layout(paper_bgcolor=bg_color, font_color=text_color)
+            st.plotly_chart(fig, use_container_width=True)
+
+        elif plot_type == "Scatter (for Constellation)" and meas == "Constellation":
+            fig = go.Figure(go.Scatter(
+                x=data["Constellation"][:, 0],
+                y=data["Constellation"][:, 1],
+                mode='markers',
+                marker=dict(color=color, symbol=marker_dict[marker_style])
+            ))
+            fig.update_layout(title="Constellation Plot", xaxis_title="I", yaxis_title="Q", paper_bgcolor=bg_color, font_color=text_color)
+            st.plotly_chart(fig, use_container_width=True)
+
+        st.markdown("</div>", unsafe_allow_html=True)
+
+# Auto-refresh info
+st.sidebar.write("🔄 The data updates automatically every time you refresh.")
