@@ -98,13 +98,21 @@ if st.session_state.active_plots:
             fig.add_trace(go.Bar(x=labels, y=values, marker_color=color))
             fig.update_layout(title=title, width=width, height=height)
 
-        # Display plot with a delete button on top-right
-        col1, col2 = st.columns([9, 1])
-        with col1:
-            st.plotly_chart(fig, config={"displayModeBar": True})
-        with col2:
-            if st.button("❌", key=f"remove_{plot_id}"):
-                plots_to_delete.append(plot_id)
+        # Custom modebar buttons (Download + Delete)
+        custom_modebar_buttons = [
+            {
+                "name": "Delete plot",
+                "icon": "times",  # "times" is a greyed-out X icon
+                "click": f"document.getElementById('{plot_id}_delete').click();"
+            }
+        ]
+
+        # Display Plot
+        st.plotly_chart(fig, config={"displayModeBar": True, "modeBarButtonsToAdd": custom_modebar_buttons})
+
+        # Invisible button for deletion (triggered by modebar "X")
+        if st.button("", key=f"{plot_id}_delete", help="Delete this plot", args=[plot_id]):
+            plots_to_delete.append(plot_id)
 
 # Remove selected plots
 for plot_id in plots_to_delete:
