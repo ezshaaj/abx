@@ -3,10 +3,11 @@ import plotly.graph_objects as go
 import numpy as np
 from streamlit_sortables import sort_items
 
-# Load Google Fonts dynamically
+# Load Google Fonts
 GOOGLE_FONTS = [
-    "Roboto", "Open Sans", "Montserrat", "Lato", "Poppins", "Raleway", "Merriweather",
-    "Oswald", "Nunito", "Playfair Display", "Quicksand", "Ubuntu", "Pacifico", "Caveat"
+    "Roboto", "Open Sans", "Montserrat", "Lato", "Poppins", "Raleway", 
+    "Merriweather", "Oswald", "Nunito", "Playfair Display", "Quicksand", 
+    "Ubuntu", "Pacifico", "Caveat"
 ]
 
 # Simulated 5G measurement data
@@ -16,7 +17,7 @@ def generate_data():
         "SINR": np.random.uniform(-10, 30),
         "Throughput": np.random.uniform(10, 100),
         "BLER": np.random.uniform(0, 1),
-        "Constellation": np.random.uniform(-1, 1, (100, 2))  # 100 sample points
+        "Constellation": np.random.uniform(-1, 1, (100, 2))  # 100 sample points for scatter
     }
 
 # UI Layout
@@ -49,7 +50,7 @@ st.markdown(
 
 # Available measurement options
 measurements = ["MCS", "SINR", "Throughput", "BLER", "Constellation"]
-plot_types = ["Line Chart", "Gauge", "Scatter (for Constellation)", "Bar Chart"]
+plot_types = ["Gauge", "Line Chart", "Scatter (for Constellation)", "Bar Chart"]
 
 # Session state to store active plots
 if "active_plots" not in st.session_state:
@@ -61,8 +62,8 @@ selected_plot_type = st.sidebar.selectbox("Select Plot Type", plot_types)
 selected_color = st.sidebar.color_picker("Select Plot Color", "#1f77b4")
 selected_line_width = st.sidebar.slider("Line Thickness", 1, 5, 2)
 selected_marker_style = st.sidebar.selectbox("Marker Style", ["circle", "square", "diamond", "cross"])
-plot_width = st.sidebar.slider("Plot Width (%)", 20, 100, 50)
-plot_height = st.sidebar.slider("Plot Height (px)", 200, 800, 400)
+selected_width = st.sidebar.slider("Plot Width (px)", 200, 800, 400)
+selected_height = st.sidebar.slider("Plot Height (px)", 200, 800, 400)
 
 # Button to add plot
 if st.sidebar.button("➕ Add Plot"):
@@ -72,8 +73,8 @@ if st.sidebar.button("➕ Add Plot"):
         "color": selected_color,
         "line_width": selected_line_width,
         "marker_style": selected_marker_style,
-        "width": plot_width,
-        "height": plot_height
+        "width": selected_width,
+        "height": selected_height
     })
 
 # Button to clear all plots
@@ -99,43 +100,44 @@ marker_dict = {"circle": "circle", "square": "square", "diamond": "diamond", "cr
 if st.session_state.active_plots:
     for plot in st.session_state.active_plots:
         meas, plot_type, color, line_width, marker_style, width, height = (
-            plot["measurement"], plot["plot_type"], plot["color"],
-            plot["line_width"], plot["marker_style"], plot["width"], plot["height"]
+            plot["measurement"], plot["plot_type"], plot["color"], plot["line_width"], plot["marker_style"], plot["width"], plot["height"]
         )
 
-        # Container with resizable width & height
-        with st.container():
-            st.markdown(
-                f'<div style="width:{width}%; height:{height}px;">', 
-                unsafe_allow_html=True
-            )
+        # Create Plot
+        if plot_type == "Line Chart":
+            y_values = np.random.uniform(0, 100, 10)  # Simulating 10 time samples
+            fig = go.Figure(go.Scatter(y=y_values, x=list(range(10)), mode='lines', name=meas, 
+                                       line=dict(color=color, width=line_width)))
+            fig.update_layout(title=f"{meas} - Line Chart", xaxis_title="Time", yaxis_title="Value",
+                              width=width, height=height)
 
-            if plot_type == "Line Chart":
-                y_values = np.random.uniform(0, 100, 10)  # Simulated 10 time samples
-                fig = go.Figure(go.Scatter(y=y_values, x=list(range(10)), mode='lines', name=meas, 
-                                           line=dict(color=color, width=line_width)))
-                fig.update_layout(title=f"{meas} - Line Chart", xaxis_title="Time", yaxis_title="Value")
-                st.plotly_chart(fig, use_container_width=True)
+        elif plot_type == "Gauge":
+            fig = go.Figure(go.Indicator(
+                mode="gauge+number",
+                value=data[meas],
+                title={"text": meas},
+                gauge={"axis": {"range": [0, 100] if meas != "BLER" else [0, 1]}, "bar": {"color": color}}
+            ))
+            fig.update_layout(width=width, height=height)
 
-            elif plot_type == "Gauge":
-                fig = go.Figure(go.Indicator(
-                    mode="gauge+number",
-                    value=data[meas],
-                    title={"text": meas},
-                    gauge={"axis": {"range": [0, 100] if meas != "BLER" else [0, 1]}, "bar": {"color": color}}
-                ))
-                st.plotly_chart(fig, use_container_width=True)
+        elif plot_type == "Scatter (for Constellation)" and meas == "Constellation":
+            fig = go.Figure(go.Scatter(
+                x=data["Constellation"][:, 0], y=data["Constellation"][:, 1],
+                mode='markers',
+                marker=dict(color=color, symbol=marker_dict[marker_style])
+            ))
+            fig.update_layout(title="Constellation Plot", xaxis_title="I", yaxis_title="Q",
+                              width=width, height=height)
 
-            elif plot_type == "Scatter (for Constellation)" and meas == "Constellation":
-                fig = go.Figure(go.Scatter(
-                    x=data["Constellation"][:, 0], y=data["Constellation"][:, 1],
-                    mode='markers', marker=dict(color=color, symbol=marker_dict[marker_style])
-                ))
-                fig.update_layout(title="Constellation Plot", xaxis_title="I", yaxis_title="Q")
-                st.plotly_chart(fig, use_container_width=True)
+        elif plot_type == "Bar Chart":
+            values = np.random.uniform(10, 100, 5)  # Simulating 5 bar values
+            labels = ["A", "B", "C", "D", "E"]
+            fig = go.Figure(go.Bar(x=labels, y=values, marker_color=color))
+            fig.update_layout(title=f"{meas} - Bar Chart", xaxis_title="Category", yaxis_title="Value",
+                              width=width, height=height)
 
-            # Close resizable div
-            st.markdown("</div>", unsafe_allow_html=True)
+        # Display plot
+        st.plotly_chart(fig)
 
 # Auto-refresh info
 st.sidebar.write("🔄 The data updates automatically every time you refresh.")
