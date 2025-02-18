@@ -2,5 +2,4 @@ streamlit
 plotly 
 numpy 
 streamlit-sortables
-streamlit_dynamic_widgets
 google_fonts
