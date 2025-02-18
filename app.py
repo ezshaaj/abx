@@ -3,6 +3,7 @@ import plotly.graph_objects as go
 import numpy as np
 import pandas as pd
 from streamlit_sortables import sort_items
+import streamlit_nested_layout
 
 # Load Google Fonts dynamically
 GOOGLE_FONTS = [
@@ -97,53 +98,39 @@ st.subheader("📈 Live 5G Measurements")
 data = generate_data()
 marker_dict = {"circle": "circle", "square": "square", "diamond": "diamond", "cross": "x"}
 
-if st.session_state.active_plots:
-    for plot in st.session_state.active_plots:
-        meas, plot_type, color, line_width, marker_style, width, height = (
-            plot["measurement"], plot["plot_type"], plot["color"], plot["line_width"], plot["marker_style"], plot["width"], plot["height"]
-        )
+for plot in st.session_state.active_plots:
+    meas, plot_type, color, line_width, marker_style, width, height = (
+        plot["measurement"], plot["plot_type"], plot["color"],
+        plot["line_width"], plot["marker_style"], plot["width"], plot["height"]
+    )
+    
+    fig = go.Figure()
+    if plot_type == "Line Chart":
+        y_values = np.random.uniform(0, 100, 10)  # Simulating 10 time samples
+        fig.add_trace(go.Scatter(y=y_values, x=list(range(10)), mode='lines', name=meas, line=dict(color=color, width=line_width)))
+        fig.update_layout(title=f"{meas} - Line Chart", xaxis_title="Time", yaxis_title="Value", paper_bgcolor=bg_color, font_color=text_color)
+    elif plot_type == "Gauge":
+        fig.add_trace(go.Indicator(
+            mode="gauge+number",
+            value=data[meas],
+            title={"text": meas},
+            gauge={"axis": {"range": [0, 100] if meas != "BLER" else [0, 1]}, "bar": {"color": color}}
+        ))
+        fig.update_layout(paper_bgcolor=bg_color, font_color=text_color)
+    elif plot_type == "Scatter (for Constellation)" and meas == "Constellation":
+        fig.add_trace(go.Scatter(
+            x=data["Constellation"][:, 0], 
+            y=data["Constellation"][:, 1], 
+            mode='markers', 
+            marker=dict(color=color, symbol=marker_dict[marker_style])
+        ))
+        fig.update_layout(title="Constellation Plot", xaxis_title="I", yaxis_title="Q", paper_bgcolor=bg_color, font_color=text_color)
+    
+    # Display resizable & draggable plots
+    with st.container():
+        st.markdown(f"<div style='width:{width}px; height:{height}px; resize: both; overflow: auto; border: 1px solid #ccc; padding: 10px;'>", unsafe_allow_html=True)
+        st.plotly_chart(fig, use_container_width=False)
+        st.markdown("</div>", unsafe_allow_html=True)
 
-        # Use a container for each plot to dynamically resize
-        with st.container():
-            if plot_type == "Line Chart":
-                y_values = np.random.uniform(0, 100, 10)  # Simulating 10 time samples
-                fig = go.Figure(go.Scatter(
-                    y=y_values, x=list(range(10)), mode='lines', name=meas, 
-                    line=dict(color=color, width=line_width)
-                ))
-                fig.update_layout(
-                    title=f"{meas} - Line Chart", xaxis_title="Time", yaxis_title="Value",
-                    width=int(width * 10), height=height,  # Convert width from percentage to pixels
-                    paper_bgcolor=bg_color, font_color=text_color
-                )
-                st.plotly_chart(fig)
-
-            elif plot_type == "Gauge":
-                fig = go.Figure(go.Indicator(
-                    mode="gauge+number",
-                    value=data[meas],
-                    title={"text": meas},
-                    gauge={"axis": {"range": [0, 100] if meas != "BLER" else [0, 1]}, "bar": {"color": color}}
-                ))
-                fig.update_layout(
-                    width=int(width * 10), height=height, 
-                    paper_bgcolor=bg_color, font_color=text_color
-                )
-                st.plotly_chart(fig)
-
-            elif plot_type == "Scatter (for Constellation)" and meas == "Constellation":
-                fig = go.Figure(go.Scatter(
-                    x=data["Constellation"][:, 0],
-                    y=data["Constellation"][:, 1],
-                    mode='markers',
-                    marker=dict(color=color, symbol=marker_dict[marker_style])
-                ))
-                fig.update_layout(
-                    title="Constellation Plot", xaxis_title="I", yaxis_title="Q",
-                    width=int(width * 10), height=height, 
-                    paper_bgcolor=bg_color, font_color=text_color
-                )
-                st.plotly_chart(fig)
-
-# Auto-refresh info
+# Auto-refresh every few seconds
 st.sidebar.write("🔄 The data updates automatically every time you refresh.")
