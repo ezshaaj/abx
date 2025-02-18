@@ -1,6 +1,7 @@
 import streamlit as st
 import plotly.graph_objects as go
 import numpy as np
+import json
 from streamlit_sortables import sort_items
 
 # Load Google Fonts
@@ -10,7 +11,7 @@ GOOGLE_FONTS = [
     "Ubuntu", "Pacifico", "Caveat"
 ]
 
-# Simulated 5G measurement data
+# Generate simulated 5G measurement data
 def generate_data():
     return {
         "MCS": np.random.randint(0, 28),
@@ -26,99 +27,59 @@ st.title("📡 5G RAN Network Dashboard")
 st.sidebar.header("🎨 Customize Your Dashboard")
 
 # Custom Theme Settings
-bg_color = st.sidebar.color_picker("Background Color", "#ffffff")
-text_color = st.sidebar.color_picker("Text Color", "#000000")
-sidebar_color = st.sidebar.color_picker("Sidebar Background", "#f8f9fa")
 selected_font = st.sidebar.selectbox("Select Font", GOOGLE_FONTS)
-
-# Apply Custom Styles
-st.markdown(
-    f"""
-    <style>
-        body {{
-            background-color: {bg_color};
-            color: {text_color};
-            font-family: '{selected_font}', sans-serif;
-        }}
-        .sidebar .sidebar-content {{
-            background-color: {sidebar_color};
-        }}
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
-# Available measurement options
-measurements = ["MCS", "SINR", "Throughput", "BLER", "Constellation"]
-plot_types = ["Gauge", "Line Chart", "Scatter (for Constellation)", "Bar Chart"]
-
-# Session state to store active plots
-if "active_plots" not in st.session_state:
-    st.session_state.active_plots = []
-
-# Select measurement, plot type, and styling
-selected_measurement = st.sidebar.selectbox("Select Measurement", measurements)
-selected_plot_type = st.sidebar.selectbox("Select Plot Type", plot_types)
+selected_measurement = st.sidebar.selectbox("Select Measurement", ["MCS", "SINR", "Throughput", "BLER", "Constellation"])
+selected_plot_type = st.sidebar.selectbox("Select Plot Type", ["Gauge", "Line Chart", "Scatter", "Bar Chart"])
 selected_color = st.sidebar.color_picker("Select Plot Color", "#1f77b4")
 selected_line_width = st.sidebar.slider("Line Thickness", 1, 5, 2)
-selected_marker_style = st.sidebar.selectbox("Marker Style", ["circle", "square", "diamond", "cross"])
 selected_width = st.sidebar.slider("Plot Width (px)", 200, 800, 400)
 selected_height = st.sidebar.slider("Plot Height (px)", 200, 800, 400)
 custom_title = st.sidebar.text_input("Enter Custom Plot Title", "My Custom Plot")
 
-# Button to add plot
+# Session state for active plots
+if "active_plots" not in st.session_state:
+    st.session_state.active_plots = {}
+
+# Add new plot
 if st.sidebar.button("➕ Add Plot"):
-    st.session_state.active_plots.append({
+    plot_id = str(np.random.randint(1000, 9999))  # Unique ID
+    st.session_state.active_plots[plot_id] = {
         "measurement": selected_measurement,
         "plot_type": selected_plot_type,
         "color": selected_color,
         "line_width": selected_line_width,
-        "marker_style": selected_marker_style,
         "width": selected_width,
         "height": selected_height,
-        "title": custom_title  # Store custom title
-    })
+        "title": custom_title
+    }
 
-# Button to clear all plots
+# Clear all plots
 if st.sidebar.button("🗑 Clear All Plots"):
-    st.session_state.active_plots = []
+    st.session_state.active_plots = {}
 
-# Drag-and-drop arrangement
-if st.session_state.active_plots:
-    sorted_items = sort_items(
-        [plot["title"] for plot in st.session_state.active_plots]
-    )
-    reordered_plots = [
-        st.session_state.active_plots[[plot["title"] for plot in st.session_state.active_plots].index(item)]
-        for item in sorted_items
-    ]
-    st.session_state.active_plots = reordered_plots
-
-# Generate and display plots
+# Generate plots
 st.subheader("📈 Live 5G Measurements")
 data = generate_data()
-marker_dict = {"circle": "circle", "square": "square", "diamond": "diamond", "cross": "x"}
-
-# Track plots to delete
 plots_to_delete = []
 
 if st.session_state.active_plots:
-    for i, plot in enumerate(st.session_state.active_plots):
-        meas, plot_type, color, line_width, marker_style, width, height, title = (
-            plot["measurement"], plot["plot_type"], plot["color"], plot["line_width"], 
-            plot["marker_style"], plot["width"], plot["height"], plot["title"]
+    for plot_id, plot in list(st.session_state.active_plots.items()):
+        meas, plot_type, color, line_width, width, height, title = (
+            plot["measurement"], plot["plot_type"], plot["color"], plot["line_width"],
+            plot["width"], plot["height"], plot["title"]
         )
 
         # Create Plot
+        fig = go.Figure()
+
         if plot_type == "Line Chart":
-            y_values = np.random.uniform(0, 100, 10)  # Simulating 10 time samples
-            fig = go.Figure(go.Scatter(y=y_values, x=list(range(10)), mode='lines', name=meas, 
-                                       line=dict(color=color, width=line_width)))
-            fig.update_layout(title=title, xaxis_title="Time", yaxis_title="Value",
-                              width=width, height=height)
+            y_values = np.random.uniform(0, 100, 10)
+            fig.add_trace(go.Scatter(y=y_values, x=list(range(10)), mode='lines',
+                                     line=dict(color=color, width=line_width)))
+            fig.update_layout(title=title, width=width, height=height)
 
         elif plot_type == "Gauge":
-            fig = go.Figure(go.Indicator(
+            fig.add_trace(go.Indicator(
                 mode="gauge+number",
                 value=data[meas],
                 title={"text": title},
@@ -126,33 +87,54 @@ if st.session_state.active_plots:
             ))
             fig.update_layout(width=width, height=height)
 
-        elif plot_type == "Scatter (for Constellation)" and meas == "Constellation":
-            fig = go.Figure(go.Scatter(
+        elif plot_type == "Scatter" and meas == "Constellation":
+            fig.add_trace(go.Scatter(
                 x=data["Constellation"][:, 0], y=data["Constellation"][:, 1],
-                mode='markers',
-                marker=dict(color=color, symbol=marker_dict[marker_style])
+                mode='markers', marker=dict(color=color)
             ))
-            fig.update_layout(title=title, xaxis_title="I", yaxis_title="Q",
-                              width=width, height=height)
+            fig.update_layout(title=title, width=width, height=height)
 
         elif plot_type == "Bar Chart":
-            values = np.random.uniform(10, 100, 5)  # Simulating 5 bar values
+            values = np.random.uniform(10, 100, 5)
             labels = ["A", "B", "C", "D", "E"]
-            fig = go.Figure(go.Bar(x=labels, y=values, marker_color=color))
-            fig.update_layout(title=title, xaxis_title="Category", yaxis_title="Value",
-                              width=width, height=height)
+            fig.add_trace(go.Bar(x=labels, y=values, marker_color=color))
+            fig.update_layout(title=title, width=width, height=height)
+
+        # Add custom "X" button in Plotly modebar
+        fig.update_layout(
+            modebar_add=["remove"],
+            modebar_remove=["zoom", "pan", "select", "lasso", "autoscale"],
+            updatemenus=[
+                {
+                    "buttons": [
+                        {
+                            "args": ["visible", False],
+                            "label": "❌ Remove Plot",
+                            "method": "restyle",
+                            "execute": False,
+                            "clickmode": "event",
+                        }
+                    ],
+                    "direction": "left",
+                    "pad": {"r": 10, "t": -40},
+                    "showactive": False,
+                    "type": "buttons",
+                    "x": 1,
+                    "xanchor": "right",
+                    "y": 1.2,
+                    "yanchor": "top",
+                }
+            ],
+        )
 
         # Display plot
-        col1, col2 = st.columns([8, 1])
+        col1, col2 = st.columns([9, 1])
         with col1:
-            st.plotly_chart(fig)
+            st.plotly_chart(fig, config={"displayModeBar": True})
         with col2:
-            if st.button(f"🗑 Remove {title}", key=f"remove_{i}"):
-                plots_to_delete.append(i)
+            if st.button("❌", key=f"remove_{plot_id}"):
+                plots_to_delete.append(plot_id)
 
 # Remove selected plots
-for index in sorted(plots_to_delete, reverse=True):
-    del st.session_state.active_plots[index]
-
-# Auto-refresh info
-st.sidebar.write("🔄 The data updates automatically every time you refresh.")
+for plot_id in plots_to_delete:
+    del st.session_state.active_plots[plot_id]
