@@ -98,21 +98,21 @@ if st.session_state.active_plots:
             fig.add_trace(go.Bar(x=labels, y=values, marker_color=color))
             fig.update_layout(title=title, width=width, height=height)
 
-        # Custom modebar buttons (Download + Delete)
-        custom_modebar_buttons = [
-            {
-                "name": "Delete plot",
-                "icon": "times",  # "times" is a greyed-out X icon
-                "click": f"document.getElementById('{plot_id}_delete').click();"
-            }
-        ]
+        # Custom modebar buttons (Delete Button)
+        delete_button = {
+            "name": "Delete Plot",
+            "icon": "times",  # This makes the X match other modebar icons
+            "click": None  # Streamlit doesn’t support direct JavaScript events, so we handle it differently
+        }
 
         # Display Plot
-        st.plotly_chart(fig, config={"displayModeBar": True, "modeBarButtonsToAdd": custom_modebar_buttons})
+        plot_container = st.container()
+        with plot_container:
+            st.plotly_chart(fig, config={"displayModeBar": True, "modeBarButtonsToAdd": [delete_button]})
 
-        # Invisible button for deletion (triggered by modebar "X")
-        if st.button("", key=f"{plot_id}_delete", help="Delete this plot", args=[plot_id]):
-            plots_to_delete.append(plot_id)
+            # Delete button directly in Streamlit (below plot)
+            if st.button("❌ Delete", key=f"delete_{plot_id}"):
+                plots_to_delete.append(plot_id)
 
 # Remove selected plots
 for plot_id in plots_to_delete:
