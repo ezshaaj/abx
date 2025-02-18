@@ -65,6 +65,7 @@ selected_line_width = st.sidebar.slider("Line Thickness", 1, 5, 2)
 selected_marker_style = st.sidebar.selectbox("Marker Style", ["circle", "square", "diamond", "cross"])
 selected_width = st.sidebar.slider("Plot Width (px)", 200, 800, 400)
 selected_height = st.sidebar.slider("Plot Height (px)", 200, 800, 400)
+custom_title = st.sidebar.text_input("Enter Custom Plot Title", "My Custom Plot")
 
 # Button to add plot
 if st.sidebar.button("➕ Add Plot"):
@@ -75,7 +76,8 @@ if st.sidebar.button("➕ Add Plot"):
         "line_width": selected_line_width,
         "marker_style": selected_marker_style,
         "width": selected_width,
-        "height": selected_height
+        "height": selected_height,
+        "title": custom_title  # Store custom title
     })
 
 # Button to clear all plots
@@ -85,10 +87,10 @@ if st.sidebar.button("🗑 Clear All Plots"):
 # Drag-and-drop arrangement
 if st.session_state.active_plots:
     sorted_items = sort_items(
-        [f"{plot['measurement']} ({plot['plot_type']})" for plot in st.session_state.active_plots]
+        [plot["title"] for plot in st.session_state.active_plots]
     )
     reordered_plots = [
-        st.session_state.active_plots[[f"{plot['measurement']} ({plot['plot_type']})" for plot in st.session_state.active_plots].index(item)]
+        st.session_state.active_plots[[plot["title"] for plot in st.session_state.active_plots].index(item)]
         for item in sorted_items
     ]
     st.session_state.active_plots = reordered_plots
@@ -100,8 +102,9 @@ marker_dict = {"circle": "circle", "square": "square", "diamond": "diamond", "cr
 
 if st.session_state.active_plots:
     for plot in st.session_state.active_plots:
-        meas, plot_type, color, line_width, marker_style, width, height = (
-            plot["measurement"], plot["plot_type"], plot["color"], plot["line_width"], plot["marker_style"], plot["width"], plot["height"]
+        meas, plot_type, color, line_width, marker_style, width, height, title = (
+            plot["measurement"], plot["plot_type"], plot["color"], plot["line_width"], 
+            plot["marker_style"], plot["width"], plot["height"], plot["title"]
         )
 
         # Create Plot
@@ -109,14 +112,14 @@ if st.session_state.active_plots:
             y_values = np.random.uniform(0, 100, 10)  # Simulating 10 time samples
             fig = go.Figure(go.Scatter(y=y_values, x=list(range(10)), mode='lines', name=meas, 
                                        line=dict(color=color, width=line_width)))
-            fig.update_layout(title=f"{meas} - Line Chart", xaxis_title="Time", yaxis_title="Value",
+            fig.update_layout(title=title, xaxis_title="Time", yaxis_title="Value",
                               width=width, height=height)
 
         elif plot_type == "Gauge":
             fig = go.Figure(go.Indicator(
                 mode="gauge+number",
                 value=data[meas],
-                title={"text": meas},
+                title={"text": title},
                 gauge={"axis": {"range": [0, 100] if meas != "BLER" else [0, 1]}, "bar": {"color": color}}
             ))
             fig.update_layout(width=width, height=height)
@@ -127,14 +130,14 @@ if st.session_state.active_plots:
                 mode='markers',
                 marker=dict(color=color, symbol=marker_dict[marker_style])
             ))
-            fig.update_layout(title="Constellation Plot", xaxis_title="I", yaxis_title="Q",
+            fig.update_layout(title=title, xaxis_title="I", yaxis_title="Q",
                               width=width, height=height)
 
         elif plot_type == "Bar Chart":
             values = np.random.uniform(10, 100, 5)  # Simulating 5 bar values
             labels = ["A", "B", "C", "D", "E"]
             fig = go.Figure(go.Bar(x=labels, y=values, marker_color=color))
-            fig.update_layout(title=f"{meas} - Bar Chart", xaxis_title="Category", yaxis_title="Value",
+            fig.update_layout(title=title, xaxis_title="Category", yaxis_title="Value",
                               width=width, height=height)
 
         # Display plot
