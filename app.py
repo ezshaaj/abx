@@ -1,8 +1,6 @@
 import streamlit as st
 import plotly.graph_objects as go
 import numpy as np
-import json
-from streamlit_sortables import sort_items
 
 # Load Google Fonts
 GOOGLE_FONTS = [
@@ -100,34 +98,7 @@ if st.session_state.active_plots:
             fig.add_trace(go.Bar(x=labels, y=values, marker_color=color))
             fig.update_layout(title=title, width=width, height=height)
 
-        # Add custom "X" button in Plotly modebar
-        fig.update_layout(
-            modebar_add=["remove"],
-            modebar_remove=["zoom", "pan", "select", "lasso", "autoscale"],
-            updatemenus=[
-                {
-                    "buttons": [
-                        {
-                            "args": ["visible", False],
-                            "label": "❌ Remove Plot",
-                            "method": "restyle",
-                            "execute": False,
-                            "clickmode": "event",
-                        }
-                    ],
-                    "direction": "left",
-                    "pad": {"r": 10, "t": -40},
-                    "showactive": False,
-                    "type": "buttons",
-                    "x": 1,
-                    "xanchor": "right",
-                    "y": 1.2,
-                    "yanchor": "top",
-                }
-            ],
-        )
-
-        # Display plot
+        # Display plot with a delete button on top-right
         col1, col2 = st.columns([9, 1])
         with col1:
             st.plotly_chart(fig, config={"displayModeBar": True})
