@@ -1,5 +1,5 @@
-streamlit
-pandas
-numpy
-plotly
-streamlit-sortables
+streamlit 
+plotly 
+numpy 
+streamlit-sortables 
+google_fonts
