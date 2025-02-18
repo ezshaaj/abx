@@ -5,3 +5,4 @@ streamlit-sortables
 google_fonts
 pandas 
 pillow
+streamlit_nested_layout
