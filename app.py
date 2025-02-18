@@ -2,8 +2,9 @@ import streamlit as st
 import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
+from streamlit_sortables import sort_items
 
-# Simulated 5G measurement data (replace with real-time data source)
+# Simulated 5G measurement data (replace with real data)
 def generate_data():
     return {
         "MCS": np.random.randint(0, 28),
@@ -15,49 +16,65 @@ def generate_data():
 
 # UI Layout
 st.title("📡 5G RAN Network Dashboard")
-st.sidebar.header("📊 Select Measurements & Plot Type")
+st.sidebar.header("📊 Manage Your Dashboard")
 
-# Measurement selection
+# Available measurement options
 measurements = ["MCS", "SINR", "Throughput", "BLER", "Constellation"]
-selected_measurements = st.sidebar.multiselect("Select Measurements", measurements, default=["MCS", "SINR"])
-
-# Plot type selection
 plot_types = ["Line Chart", "Gauge", "Scatter (for Constellation)"]
+
+# Session state to store active plots
+if "active_plots" not in st.session_state:
+    st.session_state.active_plots = []
+
+# Select measurement & plot type
+selected_measurement = st.sidebar.selectbox("Select Measurement", measurements)
 selected_plot_type = st.sidebar.selectbox("Select Plot Type", plot_types)
 
-# Generate data
+# Button to add plot
+if st.sidebar.button("➕ Add Plot"):
+    st.session_state.active_plots.append({"measurement": selected_measurement, "plot_type": selected_plot_type})
+
+# Button to clear all plots
+if st.sidebar.button("🗑 Clear All Plots"):
+    st.session_state.active_plots = []
+
+# Drag-and-drop arrangement
+if st.session_state.active_plots:
+    sorted_items = sort_items(
+        [f"{plot['measurement']} ({plot['plot_type']})" for plot in st.session_state.active_plots]
+    )
+    reordered_plots = [
+        st.session_state.active_plots[[f"{plot['measurement']} ({plot['plot_type']})" for plot in st.session_state.active_plots].index(item)]
+        for item in sorted_items
+    ]
+    st.session_state.active_plots = reordered_plots
+
+# Generate and display plots
+st.subheader("📈 Live 5G Measurements")
 data = generate_data()
 
-# Plotting logic
-st.subheader("📈 Live 5G Measurements")
+for plot in st.session_state.active_plots:
+    meas, plot_type = plot["measurement"], plot["plot_type"]
 
-if selected_plot_type == "Line Chart":
-    fig = go.Figure()
-    for meas in selected_measurements:
-        if meas != "Constellation":
-            y_values = np.random.uniform(0, 100, 10)  # Simulating 10 time samples
-            fig.add_trace(go.Scatter(y=y_values, x=list(range(10)), mode='lines', name=meas))
-    fig.update_layout(title="Line Chart of Selected Measurements", xaxis_title="Time", yaxis_title="Value")
-    st.plotly_chart(fig)
+    if plot_type == "Line Chart":
+        y_values = np.random.uniform(0, 100, 10)  # Simulating 10 time samples
+        fig = go.Figure(go.Scatter(y=y_values, x=list(range(10)), mode='lines', name=meas))
+        fig.update_layout(title=f"{meas} - Line Chart", xaxis_title="Time", yaxis_title="Value")
+        st.plotly_chart(fig)
 
-elif selected_plot_type == "Gauge":
-    for meas in selected_measurements:
-        if meas in ["MCS", "SINR", "Throughput", "BLER"]:
-            fig = go.Figure(go.Indicator(
-                mode="gauge+number",
-                value=data[meas],
-                title={"text": meas},
-                gauge={"axis": {"range": [0, 100] if meas != "BLER" else [0, 1]}}
-            ))
-            st.plotly_chart(fig)
+    elif plot_type == "Gauge":
+        fig = go.Figure(go.Indicator(
+            mode="gauge+number",
+            value=data[meas],
+            title={"text": meas},
+            gauge={"axis": {"range": [0, 100] if meas != "BLER" else [0, 1]}}
+        ))
+        st.plotly_chart(fig)
 
-elif selected_plot_type == "Scatter (for Constellation)":
-    if "Constellation" in selected_measurements:
+    elif plot_type == "Scatter (for Constellation)" and meas == "Constellation":
         fig = go.Figure(go.Scatter(x=data["Constellation"][:, 0], y=data["Constellation"][:, 1], mode='markers'))
         fig.update_layout(title="Constellation Plot", xaxis_title="I", yaxis_title="Q")
         st.plotly_chart(fig)
-    else:
-        st.warning("Please select 'Constellation' to view this plot.")
 
 # Auto-refresh every few seconds
 st.sidebar.write("🔄 The data updates automatically every time you refresh.")
