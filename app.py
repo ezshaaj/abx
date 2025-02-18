@@ -3,9 +3,6 @@ import plotly.graph_objects as go
 import numpy as np
 import pandas as pd
 from streamlit_sortables import sort_items
-from PIL import Image
-import requests
-from io import BytesIO
 
 # Load Google Fonts dynamically
 GOOGLE_FONTS = [
@@ -45,13 +42,6 @@ st.markdown(
         }}
         .sidebar .sidebar-content {{
             background-color: {sidebar_color};
-        }}
-        .resizable {{
-            resize: both;
-            overflow: auto;
-            border: 2px solid #ddd;
-            padding: 10px;
-            margin-bottom: 10px;
         }}
     </style>
     """,
@@ -102,53 +92,58 @@ if st.session_state.active_plots:
     ]
     st.session_state.active_plots = reordered_plots
 
-# Generate and display plots in a resizable, draggable format
+# Generate and display plots
 st.subheader("📈 Live 5G Measurements")
 data = generate_data()
 marker_dict = {"circle": "circle", "square": "square", "diamond": "diamond", "cross": "x"}
 
 if st.session_state.active_plots:
-    sorted_plots = sort_items([f"{plot['measurement']} ({plot['plot_type']})" for plot in st.session_state.active_plots])
-    reordered_plots = [st.session_state.active_plots[
-        [f"{plot['measurement']} ({plot['plot_type']})" for plot in st.session_state.active_plots].index(item)]
-        for item in sorted_plots
-    ]
-    st.session_state.active_plots = reordered_plots
-
-    for idx, plot in enumerate(st.session_state.active_plots):
+    for plot in st.session_state.active_plots:
         meas, plot_type, color, line_width, marker_style, width, height = (
             plot["measurement"], plot["plot_type"], plot["color"], plot["line_width"], plot["marker_style"], plot["width"], plot["height"]
         )
 
-        st.markdown(f'<div class="resizable" style="width: {width}%; height: {height}px;">', unsafe_allow_html=True)
+        # Use a container for each plot to dynamically resize
+        with st.container():
+            if plot_type == "Line Chart":
+                y_values = np.random.uniform(0, 100, 10)  # Simulating 10 time samples
+                fig = go.Figure(go.Scatter(
+                    y=y_values, x=list(range(10)), mode='lines', name=meas, 
+                    line=dict(color=color, width=line_width)
+                ))
+                fig.update_layout(
+                    title=f"{meas} - Line Chart", xaxis_title="Time", yaxis_title="Value",
+                    width=int(width * 10), height=height,  # Convert width from percentage to pixels
+                    paper_bgcolor=bg_color, font_color=text_color
+                )
+                st.plotly_chart(fig)
 
-        if plot_type == "Line Chart":
-            y_values = np.random.uniform(0, 100, 10)  # Simulating 10 time samples
-            fig = go.Figure(go.Scatter(y=y_values, x=list(range(10)), mode='lines', name=meas, line=dict(color=color, width=line_width)))
-            fig.update_layout(title=f"{meas} - Line Chart", xaxis_title="Time", yaxis_title="Value", paper_bgcolor=bg_color, font_color=text_color)
-            st.plotly_chart(fig, use_container_width=True)
+            elif plot_type == "Gauge":
+                fig = go.Figure(go.Indicator(
+                    mode="gauge+number",
+                    value=data[meas],
+                    title={"text": meas},
+                    gauge={"axis": {"range": [0, 100] if meas != "BLER" else [0, 1]}, "bar": {"color": color}}
+                ))
+                fig.update_layout(
+                    width=int(width * 10), height=height, 
+                    paper_bgcolor=bg_color, font_color=text_color
+                )
+                st.plotly_chart(fig)
 
-        elif plot_type == "Gauge":
-            fig = go.Figure(go.Indicator(
-                mode="gauge+number",
-                value=data[meas],
-                title={"text": meas},
-                gauge={"axis": {"range": [0, 100] if meas != "BLER" else [0, 1]}, "bar": {"color": color}}
-            ))
-            fig.update_layout(paper_bgcolor=bg_color, font_color=text_color)
-            st.plotly_chart(fig, use_container_width=True)
-
-        elif plot_type == "Scatter (for Constellation)" and meas == "Constellation":
-            fig = go.Figure(go.Scatter(
-                x=data["Constellation"][:, 0],
-                y=data["Constellation"][:, 1],
-                mode='markers',
-                marker=dict(color=color, symbol=marker_dict[marker_style])
-            ))
-            fig.update_layout(title="Constellation Plot", xaxis_title="I", yaxis_title="Q", paper_bgcolor=bg_color, font_color=text_color)
-            st.plotly_chart(fig, use_container_width=True)
-
-        st.markdown("</div>", unsafe_allow_html=True)
+            elif plot_type == "Scatter (for Constellation)" and meas == "Constellation":
+                fig = go.Figure(go.Scatter(
+                    x=data["Constellation"][:, 0],
+                    y=data["Constellation"][:, 1],
+                    mode='markers',
+                    marker=dict(color=color, symbol=marker_dict[marker_style])
+                ))
+                fig.update_layout(
+                    title="Constellation Plot", xaxis_title="I", yaxis_title="Q",
+                    width=int(width * 10), height=height, 
+                    paper_bgcolor=bg_color, font_color=text_color
+                )
+                st.plotly_chart(fig)
 
 # Auto-refresh info
 st.sidebar.write("🔄 The data updates automatically every time you refresh.")
